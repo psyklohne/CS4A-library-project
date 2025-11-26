@@ -2,26 +2,31 @@ import java.io.*;
 import java.util.*;
 
 public class Library implements Serializable {
+    // Shelves with compartments
+    // Both refer to item, passing off ownership from one to the other 
     private List<Shelf> shelves;
-    private List<CheckoutRecord> checkedOut;
+    private List<CheckoutRecord> checkedOut; // Nullifies shelf ownership, vice-versa
     
-    public Library(int numShelves) {
+    public Library(int numShelves) 
+    {
         shelves = new ArrayList<>();
-        for (int i = 0; i < numShelves; i++) {
+        for (int i = 0; i < numShelves; i++) 
+        {
             shelves.add(new Shelf());
         }
         checkedOut = new ArrayList<>();
     }
     
-    // OOP emulation access - trust the design
     public Shelf getShelf(int shelf) {
-        if (shelf < 0 || shelf >= shelves.size()) {
+        if (shelf < 0 || shelf >= shelves.size()) 
+        {
+            // Validate shelf index before access
             throw new IndexOutOfBoundsException("Invalid shelf: " + shelf);
         }
         return shelves.get(shelf);
     }
     
-    // Direct access with clean error handling
+    // Access method
     public Item getItem(int shelf, int compartment) {
         try {
             return getShelf(shelf).getCompartment(compartment);
@@ -31,12 +36,12 @@ public class Library implements Serializable {
         }
     }
     
-    // Core operations - trusting our flow
+    // Add item to specified shelf and compartment
     public boolean addItem(Item item, int shelf, int compartment) {
         try {
             Shelf targetShelf = getShelf(shelf);
             if (!targetShelf.isCompartmentEmpty(compartment)) {
-                System.out.println("Error: Location already occupied");
+                System.out.println("Error: Compartment already occupied");
                 return false;
             }
             targetShelf.setCompartment(compartment, item);
@@ -48,13 +53,15 @@ public class Library implements Serializable {
         }
     }
     
+    // Checkout item from compartment, record who borrower and dueDays info
+    // First transfer of ownership from one library list to another
     public boolean checkoutItem(int shelf, int compartment, String borrower, int dueDays) {
         try {
             Shelf targetShelf = getShelf(shelf);
             Item item = targetShelf.getCompartment(compartment);
             
             if (item == null) {
-                System.out.println("Error: No item at this location");
+                System.out.println("Error: No item in this compartment");
                 return false;
             }
             
@@ -63,7 +70,8 @@ public class Library implements Serializable {
                 return false;
             }
             
-            // Confident creation - item is validated above
+            // Item is validated above
+            // Transition of ownership
             CheckoutRecord record = new CheckoutRecord(item, borrower, dueDays, shelf, compartment);
             checkedOut.add(record);
             targetShelf.setCompartment(compartment, null);
@@ -76,6 +84,7 @@ public class Library implements Serializable {
         }
     }
     
+    // Return (change in ownership of item)
     public boolean returnItem(String itemId) {
         CheckoutRecord record = findCheckedOutRecord(itemId);
         if (record == null) {
@@ -98,6 +107,7 @@ public class Library implements Serializable {
         }
     }
     
+    // Swap
     public boolean swapItems(int shelf1, int compartment1, int shelf2, int compartment2) {
         try {
             Shelf shelfA = getShelf(shelf1);
@@ -123,17 +133,16 @@ public class Library implements Serializable {
         }
     }
     
+    // Printing
     public void printStorage() {
         System.out.println("\n=== ITEMS IN STORAGE ===");
         boolean foundAny = false;
         
         for (int s = 0; s < shelves.size(); s++) {
-            shelves.get(s).displayContents(s);
-            for (int c = 0; c < shelves.get(s).getCompartmentCount(); c++) {
-                if (!shelves.get(s).isCompartmentEmpty(c)) {
-                    foundAny = true;
-                    break;
-                }
+            List<String> shelfContents = shelves.get(s).getCompartmentContents();
+            for (String content : shelfContents) {
+                System.out.println("Shelf " + s + ", " + content);
+                foundAny = true;
             }
         }
         
@@ -160,8 +169,9 @@ public class Library implements Serializable {
         }
     }
     
-    // File I/O - trusting Java's serialization
-    public void saveToFile(String filename) {
+    // File Input turns human readable Library objects (items in shelves and checkout records) into binary bytes
+    public void saveToFile(String filename) 
+    {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filename))) {
             oos.writeObject(this);
             System.out.println("Library saved to " + filename);
@@ -169,8 +179,11 @@ public class Library implements Serializable {
             System.out.println("Error saving library: " + e.getMessage());
         }
     }
-    
-    public static Library loadFromFile(String filename) {
+
+    // File Output turns saved Library binary bytes Library (items in shelves and checkout records) into computer readable objects
+    // Not readable because file does not inherently go back into compiler it was sourced from
+    public static Library loadFromFile(String filename) 
+    {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename))) {
             Library library = (Library) ois.readObject();
             System.out.println("Library loaded from " + filename);
@@ -181,7 +194,7 @@ public class Library implements Serializable {
         }
     }
     
-    // Helper methods - clean and confident
+    // Helper methods for validation checks to aid error handling
     private boolean isItemCheckedOut(String itemId) {
         return findCheckedOutRecord(itemId) != null;
     }
